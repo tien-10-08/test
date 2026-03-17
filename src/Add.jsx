@@ -48,17 +48,11 @@ const Add = ({ onClose, onAddDistrict, districtData }) => {
     message.success("Thêm Quận/Huyện thành công");
 
     form.resetFields();
-
     onClose?.();
   };
 
   return (
-    <Form
-      form={form}
-      layout="vertical"
-      onFinish={handleSubmit}
-      style={{ marginTop: 16 }}
-    >
+    <Form form={form} layout="vertical" onFinish={handleSubmit}>
       <Row gutter={16}>
         <Col span={12}>
           <Form.Item

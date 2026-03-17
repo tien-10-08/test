@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   Row,
   Col,
@@ -18,10 +18,16 @@ import Add from "./Add";
 
 const { Option } = Select;
 
+const STORAGE_KEY = "district-storage";
+
 const CardView = () => {
   const [form] = Form.useForm();
 
-  const [districtData, setDistrictData] = useState(Mst_District);
+  const [districtData, setDistrictData] = useState(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved ? JSON.parse(saved) : Mst_District;
+  });
+
   const [selectedItems, setSelectedItems] = useState([]);
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
 
@@ -34,7 +40,10 @@ const CardView = () => {
   const [provinceSearch, setProvinceSearch] = useState("");
   const [districtSearch, setDistrictSearch] = useState("");
 
-  // Province options
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(districtData));
+  }, [districtData]);
+
   const provinceOptions = useMemo(() => {
     return Mst_Province.filter((p) =>
       p.ProvinceName.toLowerCase().includes(provinceSearch.toLowerCase()),
@@ -44,7 +53,6 @@ const CardView = () => {
     }));
   }, [provinceSearch]);
 
-  // District options
   const districtOptions = useMemo(() => {
     if (!filters.province) return [];
 
@@ -66,7 +74,6 @@ const CardView = () => {
       }));
   }, [districtSearch, districtData, filters.province]);
 
-  // Filter result
   const resultData = useMemo(() => {
     const provinceObj = Mst_Province.find(
       (p) => p.ProvinceName === filters.province,
@@ -123,7 +130,6 @@ const CardView = () => {
         <div style={{ display: "flex" }}>
           <Col span={12}>
             <Space direction="vertical" size={8} style={{ width: "100%" }}>
-              {/* Province */}
               <div style={{ display: "flex", gap: 8 }}>
                 <label style={{ width: 110, lineHeight: "32px" }}>
                   Tỉnh/TP
@@ -142,7 +148,6 @@ const CardView = () => {
                 </Form.Item>
               </div>
 
-              {/* District */}
               <div style={{ display: "flex", gap: 8 }}>
                 <label style={{ width: 110, lineHeight: "32px" }}>
                   Quận/Huyện
@@ -162,7 +167,6 @@ const CardView = () => {
                 </Form.Item>
               </div>
 
-              {/* Status */}
               <div style={{ display: "flex", gap: 8 }}>
                 <label style={{ width: 110, lineHeight: "32px" }}>
                   Trạng thái
@@ -215,11 +219,6 @@ const CardView = () => {
                 Thêm
               </Button>
             </div>
-
-            <Select defaultValue="CardView" style={{ width: 120 }}>
-              <Option value="CardView">CardView</Option>
-              <Option value="ListView">ListView</Option>
-            </Select>
           </Row>
 
           <div style={{ marginTop: 24 }}>
