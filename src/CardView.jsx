@@ -18,68 +18,70 @@ import Add from "./Add";
 
 const { Option } = Select;
 
-const findProvince = (provinceName) =>
-  Mst_Province.find((p) => p.ProvinceName === provinceName);
-
-const findDistrict = (districtData, districtName) =>
-  districtData.find((d) => d.DistrictName === districtName);
-
-const filterDistrictList = (districtData, province, district, status) => {
-  const provinceObj = findProvince(province);
-  const districtObj = findDistrict(districtData, district);
-
-  return districtData.filter((item) => {
-    const matchProvince = provinceObj
-      ? item.ProvinceCode === provinceObj.ProvinceCode
-      : true;
-
-    const matchDistrict = districtObj
-      ? item.DistrictCode === districtObj.DistrictCode
-      : true;
-
-    const matchStatus =
-      status === "active"
-        ? item.FlagActive === "1"
-        : status === "inactive"
-          ? item.FlagActive === "0"
-          : true;
-
-    return matchProvince && matchDistrict && matchStatus;
-  });
-};
-
-const getProvinceOptions = (searchValue) =>
-  Mst_Province.filter((p) =>
-    p.ProvinceName.toLowerCase().includes(searchValue.toLowerCase()),
-  ).map((p) => ({
-    value: p.ProvinceName,
-    code: p.ProvinceCode,
-  }));
-
 const CardView = () => {
   const [form] = Form.useForm();
 
   const [districtData, setDistrictData] = useState(Mst_District);
   const [resultData, setResultData] = useState([]);
-
-  const [provinceOptions, setProvinceOptions] = useState([]);
   const [selectedItems, setSelectedItems] = useState([]);
-
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
 
-  const handleProvinceSearch = (value) => {
-    setProvinceOptions(getProvinceOptions(value));
+  const [provinceSearch, setProvinceSearch] = useState("");
+  const [districtSearch, setDistrictSearch] = useState("");
+
+  const provinceOptions = useMemo(() => {
+    return Mst_Province.filter((p) =>
+      p.ProvinceName.toLowerCase().includes(provinceSearch.toLowerCase()),
+    ).map((p) => ({
+      value: p.ProvinceName,
+      code: p.ProvinceCode,
+    }));
+  }, [provinceSearch]);
+
+  const districtOptions = useMemo(() => {
+    const province = form.getFieldValue("province");
+
+    const provinceObj = Mst_Province.find((p) => p.ProvinceName === province);
+
+    if (!provinceObj) return [];
+
+    return districtData
+      .filter(
+        (d) =>
+          d.ProvinceCode === provinceObj.ProvinceCode &&
+          d.DistrictName.toLowerCase().includes(districtSearch.toLowerCase()),
+      )
+      .map((d) => ({
+        value: d.DistrictName,
+        code: d.DistrictCode,
+      }));
+  }, [districtSearch, districtData, form]);
+
+  const filterDistrictList = (province, district, status) => {
+    const provinceObj = Mst_Province.find((p) => p.ProvinceName === province);
+
+    return districtData.filter((item) => {
+      const matchProvince = provinceObj
+        ? item.ProvinceCode === provinceObj.ProvinceCode
+        : true;
+
+      const matchDistrict = district ? item.DistrictName === district : true;
+
+      const matchStatus =
+        status === "active"
+          ? item.FlagActive === "1"
+          : status === "inactive"
+            ? item.FlagActive === "0"
+            : true;
+
+      return matchProvince && matchDistrict && matchStatus;
+    });
   };
 
   const handleSearch = () => {
     const { province, district, status } = form.getFieldsValue();
 
-    const filtered = filterDistrictList(
-      districtData,
-      province,
-      district,
-      status,
-    );
+    const filtered = filterDistrictList(province, district, status);
 
     setResultData(filtered);
     setSelectedItems([]);
@@ -104,11 +106,12 @@ const CardView = () => {
   const handleAddDistrict = (newDistrict) => {
     const updated = [newDistrict, ...districtData];
 
+    setDistrictData(updated);
+
     const { province, district, status } = form.getFieldsValue();
 
-    const filtered = filterDistrictList(updated, province, district, status);
+    const filtered = filterDistrictList(province, district, status);
 
-    setDistrictData(updated);
     setResultData(filtered);
   };
 
@@ -117,11 +120,10 @@ const CardView = () => {
       <Form form={form}>
         <div style={{ display: "flex" }}>
           <Col span={12}>
-            <Space style={{ width: "100%", flexDirection: "column" }} size={8}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <label
-                  style={{ width: 110, textAlign: "left", lineHeight: "32px" }}
-                >
+            <Space direction="vertical" size={8} style={{ width: "100%" }}>
+              {/* Province */}
+              <div style={{ display: "flex", gap: 8 }}>
+                <label style={{ width: 110, lineHeight: "32px" }}>
                   Tỉnh/TP
                 </label>
 
@@ -131,18 +133,16 @@ const CardView = () => {
                 >
                   <AutoComplete
                     placeholder="Nhập tên Tỉnh/TP"
-                    onSearch={handleProvinceSearch}
                     options={provinceOptions}
+                    onSearch={setProvinceSearch}
                     allowClear
-                    filterOption={false}
                   />
                 </Form.Item>
               </div>
 
+              {/* District */}
               <div style={{ display: "flex", gap: 8 }}>
-                <label
-                  style={{ width: 110, textAlign: "left", lineHeight: "32px" }}
-                >
+                <label style={{ width: 110, lineHeight: "32px" }}>
                   Quận/Huyện
                 </label>
 
@@ -151,18 +151,18 @@ const CardView = () => {
                   style={{ width: 180, marginBottom: 0 }}
                 >
                   <AutoComplete
-                    placeholder="Nhập tên Quận/Huyện"
-                    allowClear
+                    placeholder="Nhập Quận/Huyện"
+                    options={districtOptions}
+                    onSearch={setDistrictSearch}
                     disabled={!form.getFieldValue("province")}
-                    filterOption={false}
+                    allowClear
                   />
                 </Form.Item>
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <label
-                  style={{ width: 110, textAlign: "left", lineHeight: "32px" }}
-                >
+              {/* Status */}
+              <div style={{ display: "flex", gap: 8 }}>
+                <label style={{ width: 110, lineHeight: "32px" }}>
                   Trạng thái
                 </label>
 
@@ -186,6 +186,7 @@ const CardView = () => {
           </div>
         </div>
 
+        {/* Modal Add */}
         <Modal
           title="Thêm mới"
           open={isAddModalVisible}
@@ -204,13 +205,7 @@ const CardView = () => {
       {resultData.length > 0 && (
         <>
           <Row style={{ marginTop: 24 }} justify="space-between">
-            <div
-              style={{
-                width: "20%",
-                justifyContent: "space-between",
-                display: "flex",
-              }}
-            >
+            <div style={{ display: "flex", gap: 10 }}>
               <Button type="primary" danger onClick={handleDelete}>
                 Xóa
               </Button>
@@ -230,13 +225,7 @@ const CardView = () => {
             {resultData.map((item) => (
               <Card key={item.DistrictCode} style={{ marginBottom: 16 }}>
                 <Row justify="space-between">
-                  <Col
-                    style={{
-                      display: "flex",
-                      gap: 8,
-                      alignItems: "center",
-                    }}
-                  >
+                  <Col style={{ display: "flex", gap: 8 }}>
                     <Checkbox
                       checked={selectedItems.includes(item.DistrictCode)}
                       onChange={(e) =>
@@ -248,7 +237,6 @@ const CardView = () => {
                     />
 
                     <strong>{item.DistrictName}</strong>
-
                     <div>{item.DistrictCode}</div>
                   </Col>
 
