@@ -1,5 +1,5 @@
 import React from "react";
-import { Form, Input, Button, Select, message } from "antd";
+import { Form, Input, Button, Select, Row, Col, message } from "antd";
 import Mst_Province from "./data/Mst_Province.json";
 
 const { Option } = Select;
@@ -7,31 +7,35 @@ const { Option } = Select;
 const Add = ({ onClose, onAddDistrict, districtData }) => {
   const [form] = Form.useForm();
 
-  const isDuplicate = (code) => {
+  const isDuplicateDistrictCode = (code) => {
     return districtData.some(
       (item) => item.DistrictCode.toLowerCase() === code.toLowerCase(),
     );
   };
 
-  const validateDistrict = (_, value) => {
+  const validateDistrictCode = (_, value) => {
     if (!value) return Promise.resolve();
 
-    if (isDuplicate(value.trim())) {
-      return Promise.reject("Mã Quận/Huyện đã tồn tại!");
+    const trimmed = value.trim();
+
+    if (isDuplicateDistrictCode(trimmed)) {
+      return Promise.reject(new Error("Mã Quận/Huyện đã tồn tại"));
     }
 
     return Promise.resolve();
   };
 
-  const handleProvince = (value) => {
-    const province = Mst_Province.find((item) => item.ProvinceCode === value);
+  const handleProvinceChange = (provinceCode) => {
+    const province = Mst_Province.find(
+      (item) => item.ProvinceCode === provinceCode,
+    );
 
     form.setFieldsValue({
       provinceName: province?.ProvinceName || "",
     });
   };
 
-  const onFinish = (values) => {
+  const handleSubmit = (values) => {
     const newDistrict = {
       DistrictCode: values.districtCode.trim(),
       ProvinceCode: values.provinceCode,
@@ -41,7 +45,7 @@ const Add = ({ onClose, onAddDistrict, districtData }) => {
 
     onAddDistrict?.(newDistrict);
 
-    message.success("Đã thêm Quận/Huyện thành công!");
+    message.success("Thêm Quận/Huyện thành công");
 
     form.resetFields();
 
@@ -49,99 +53,69 @@ const Add = ({ onClose, onAddDistrict, districtData }) => {
   };
 
   return (
-    <div className="form-container">
-      <Form form={form} onFinish={onFinish} layout="vertical">
-        <table>
-          <tbody>
-            <tr>
-              <td>
-                <label>
-                  Mã tỉnh <span className="required">(*)</span>
-                </label>
-              </td>
+    <Form
+      form={form}
+      layout="vertical"
+      onFinish={handleSubmit}
+      style={{ marginTop: 16 }}
+    >
+      <Row gutter={16}>
+        <Col span={12}>
+          <Form.Item
+            label="Mã tỉnh"
+            name="provinceCode"
+            rules={[{ required: true, message: "Vui lòng chọn mã tỉnh" }]}
+          >
+            <Select placeholder="Chọn mã tỉnh" onChange={handleProvinceChange}>
+              {Mst_Province.map((item) => (
+                <Option key={item.ProvinceCode} value={item.ProvinceCode}>
+                  {item.ProvinceCode} - {item.ProvinceName}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+        </Col>
 
-              <td>
-                <Form.Item
-                  name="provinceCode"
-                  rules={[{ required: true, message: "Vui lòng chọn mã tỉnh" }]}
-                  style={{ marginBottom: 0 }}
-                >
-                  <Select placeholder="Chọn mã tỉnh" onChange={handleProvince}>
-                    {Mst_Province.map((item) => (
-                      <Option key={item.ProvinceCode} value={item.ProvinceCode}>
-                        {item.ProvinceCode} - {item.ProvinceName}
-                      </Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </td>
-            </tr>
+        <Col span={12}>
+          <Form.Item label="Tên tỉnh" name="provinceName">
+            <Input disabled />
+          </Form.Item>
+        </Col>
+      </Row>
 
-            <tr>
-              <td>
-                <label>Tên tỉnh</label>
-              </td>
+      <Row gutter={16}>
+        <Col span={12}>
+          <Form.Item
+            label="Mã Quận/Huyện"
+            name="districtCode"
+            rules={[
+              { required: true, message: "Vui lòng nhập mã Quận/Huyện" },
+              { validator: validateDistrictCode },
+            ]}
+          >
+            <Input placeholder="Nhập mã Quận/Huyện" />
+          </Form.Item>
+        </Col>
 
-              <td>
-                <Form.Item name="provinceName" style={{ marginBottom: 0 }}>
-                  <Input disabled />
-                </Form.Item>
-              </td>
-            </tr>
+        <Col span={12}>
+          <Form.Item
+            label="Tên Quận/Huyện"
+            name="districtName"
+            rules={[
+              { required: true, message: "Vui lòng nhập tên Quận/Huyện" },
+            ]}
+          >
+            <Input placeholder="Nhập tên Quận/Huyện" />
+          </Form.Item>
+        </Col>
+      </Row>
 
-            <tr>
-              <td>
-                <label>
-                  Mã Quận/Huyện <span className="required">(*)</span>
-                </label>
-              </td>
-
-              <td>
-                <Form.Item
-                  name="districtCode"
-                  style={{ marginBottom: 0 }}
-                  rules={[
-                    {
-                      required: true,
-                      message: "Vui lòng nhập mã Quận/Huyện",
-                    },
-                    { validator: validateDistrict },
-                  ]}
-                >
-                  <Input />
-                </Form.Item>
-              </td>
-            </tr>
-
-            <tr>
-              <td>
-                <label>Tên Quận/Huyện</label>
-              </td>
-
-              <td>
-                <Form.Item
-                  name="districtName"
-                  rules={[
-                    { required: true, message: "Vui lòng nhập tên Quận/Huyện" },
-                  ]}
-                  style={{ marginBottom: 0 }}
-                >
-                  <Input />
-                </Form.Item>
-              </td>
-            </tr>
-
-            <tr>
-              <td colSpan={2} align="center">
-                <Button type="primary" htmlType="submit">
-                  Lưu
-                </Button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </Form>
-    </div>
+      <Row justify="center">
+        <Button type="primary" htmlType="submit">
+          Lưu
+        </Button>
+      </Row>
+    </Form>
   );
 };
 

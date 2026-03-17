@@ -22,13 +22,19 @@ const CardView = () => {
   const [form] = Form.useForm();
 
   const [districtData, setDistrictData] = useState(Mst_District);
-  const [resultData, setResultData] = useState([]);
   const [selectedItems, setSelectedItems] = useState([]);
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
+
+  const [filters, setFilters] = useState({
+    province: null,
+    district: null,
+    status: null,
+  });
 
   const [provinceSearch, setProvinceSearch] = useState("");
   const [districtSearch, setDistrictSearch] = useState("");
 
+  // Province options
   const provinceOptions = useMemo(() => {
     return Mst_Province.filter((p) =>
       p.ProvinceName.toLowerCase().includes(provinceSearch.toLowerCase()),
@@ -38,10 +44,13 @@ const CardView = () => {
     }));
   }, [provinceSearch]);
 
+  // District options
   const districtOptions = useMemo(() => {
-    const province = form.getFieldValue("province");
+    if (!filters.province) return [];
 
-    const provinceObj = Mst_Province.find((p) => p.ProvinceName === province);
+    const provinceObj = Mst_Province.find(
+      (p) => p.ProvinceName === filters.province,
+    );
 
     if (!provinceObj) return [];
 
@@ -55,64 +64,57 @@ const CardView = () => {
         value: d.DistrictName,
         code: d.DistrictCode,
       }));
-  }, [districtSearch, districtData, form]);
+  }, [districtSearch, districtData, filters.province]);
 
-  const filterDistrictList = (province, district, status) => {
-    const provinceObj = Mst_Province.find((p) => p.ProvinceName === province);
+  // Filter result
+  const resultData = useMemo(() => {
+    const provinceObj = Mst_Province.find(
+      (p) => p.ProvinceName === filters.province,
+    );
 
     return districtData.filter((item) => {
       const matchProvince = provinceObj
         ? item.ProvinceCode === provinceObj.ProvinceCode
         : true;
 
-      const matchDistrict = district ? item.DistrictName === district : true;
+      const matchDistrict = filters.district
+        ? item.DistrictName === filters.district
+        : true;
 
       const matchStatus =
-        status === "active"
+        filters.status === "active"
           ? item.FlagActive === "1"
-          : status === "inactive"
+          : filters.status === "inactive"
             ? item.FlagActive === "0"
             : true;
 
       return matchProvince && matchDistrict && matchStatus;
     });
-  };
+  }, [districtData, filters]);
 
   const handleSearch = () => {
-    const { province, district, status } = form.getFieldsValue();
-
-    const filtered = filterDistrictList(province, district, status);
-
-    setResultData(filtered);
+    const values = form.getFieldsValue();
+    setFilters(values);
     setSelectedItems([]);
   };
 
-  const handleSelectCheckbox = (districtCode, checked) => {
+  const handleSelectCheckbox = (code, checked) => {
     setSelectedItems((prev) =>
-      checked
-        ? [...prev, districtCode]
-        : prev.filter((code) => code !== districtCode),
+      checked ? [...prev, code] : prev.filter((item) => item !== code),
     );
   };
 
   const handleDelete = () => {
-    setResultData((prev) =>
-      prev.filter((item) => !selectedItems.includes(item.DistrictCode)),
+    const updated = districtData.filter(
+      (item) => !selectedItems.includes(item.DistrictCode),
     );
 
+    setDistrictData(updated);
     setSelectedItems([]);
   };
 
   const handleAddDistrict = (newDistrict) => {
-    const updated = [newDistrict, ...districtData];
-
-    setDistrictData(updated);
-
-    const { province, district, status } = form.getFieldsValue();
-
-    const filtered = filterDistrictList(province, district, status);
-
-    setResultData(filtered);
+    setDistrictData((prev) => [newDistrict, ...prev]);
   };
 
   return (
@@ -132,7 +134,7 @@ const CardView = () => {
                   style={{ width: 180, marginBottom: 0 }}
                 >
                   <AutoComplete
-                    placeholder="Nhập tên Tỉnh/TP"
+                    placeholder="Nhập Tỉnh/TP"
                     options={provinceOptions}
                     onSearch={setProvinceSearch}
                     allowClear
@@ -154,7 +156,7 @@ const CardView = () => {
                     placeholder="Nhập Quận/Huyện"
                     options={districtOptions}
                     onSearch={setDistrictSearch}
-                    disabled={!form.getFieldValue("province")}
+                    disabled={!filters.province}
                     allowClear
                   />
                 </Form.Item>
@@ -186,7 +188,6 @@ const CardView = () => {
           </div>
         </div>
 
-        {/* Modal Add */}
         <Modal
           title="Thêm mới"
           open={isAddModalVisible}
